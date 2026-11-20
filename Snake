@@ -1,0 +1,208 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Snake Game</title>
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;background:#101820;color:white;
+ font-family:Arial;text-align:center;
+ display:flex;flex-direction:column;
+ align-items:center;min-height:100vh;
+}
+h1{color:#55ef75;margin:20px 0 10px}
+#score{font-size:23px;margin:10px}
+canvas{
+ width:min(92vw,400px);
+ height:min(92vw,400px);
+ background:#182b24;
+ border:4px solid #55ef75;
+ border-radius:12px;
+}
+button{
+ border:0;border-radius:12px;
+ background:#35c759;color:white;
+ font-size:22px;font-weight:bold;
+ padding:14px 22px;
+ margin:5px;
+}
+.controls{
+ display:grid;
+ grid-template-columns:65px 65px 65px;
+ gap:5px;margin-top:15px;
+}
+.controls button{padding:12px;margin:0}
+#message{margin:12px;font-size:18px}
+</style>
+</head>
+<body>
+
+<h1>🐍 SNAKE GAME</h1>
+<div id="score">Điểm: 0 | Kỷ lục: 0</div>
+
+<canvas id="game" width="400" height="400"></canvas>
+
+<div id="message">Nhấn BẮT ĐẦU để chơi!</div>
+<button onclick="startGame()">▶ BẮT ĐẦU</button>
+
+<div class="controls">
+ <div></div>
+ <button onclick="change(0,-1)">⬆️</button>
+ <div></div>
+ <button onclick="change(-1,0)">⬅️</button>
+ <button onclick="change(0,1)">⬇️</button>
+ <button onclick="change(1,0)">➡️</button>
+</div>
+
+<script>
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+
+const size=20;
+const cells=20;
+
+let snake,food,dx,dy,score;
+let running=false;
+let timer;
+let speed=140;
+
+let record=Number(localStorage.getItem("snakeRecord"))||0;
+
+function updateScore(){
+ document.getElementById("score").textContent=
+ "Điểm: "+score+" | Kỷ lục: "+record;
+}
+
+function newFood(){
+ do{
+ food={
+ x:Math.floor(Math.random()*cells),
+ y:Math.floor(Math.random()*cells)
+ };
+ }while(snake.some(p=>p.x===food.x&&p.y===food.y));
+}
+
+function startGame(){
+ clearInterval(timer);
+ snake=[
+ {x:10,y:10},
+ {x:9,y:10},
+ {x:8,y:10}
+ ];
+ dx=1;dy=0;
+ score=0;
+ speed=140;
+ running=true;
+ newFood();
+ updateScore();
+ document.getElementById("message").textContent="Chúc bạn chơi vui!";
+ draw();
+ timer=setInterval(move,speed);
+}
+
+function change(x,y){
+ if(!running)return;
+ if(x===-dx&&y===-dy)return;
+ dx=x;dy=y;
+}
+
+function move(){
+ if(!running)return;
+
+ let head={
+ x:snake[0].x+dx,
+ y:snake[0].y+dy
+ };
+
+ if(head.x<0||head.x>=cells||
+ head.y<0||head.y>=cells){
+  endGame();return;
+ }
+
+ let eating=head.x===food.x&&head.y===food.y;
+
+ let body=eating?snake:snake.slice(0,-1);
+
+ if(body.some(p=>p.x===head.x&&p.y===head.y)){
+  endGame();return;
+ }
+
+ snake.unshift(head);
+
+ if(eating){
+  score+=10;
+  if(score>record){
+   record=score;
+   localStorage.setItem("snakeRecord",record);
+  }
+  newFood();
+
+  if(speed>65){
+   speed-=5;
+   clearInterval(timer);
+   timer=setInterval(move,speed);
+  }
+ }else{
+  snake.pop();
+ }
+
+ updateScore();
+ draw();
+}
+
+function draw(){
+ ctx.clearRect(0,0,400,400);
+
+ // Lưới
+ ctx.strokeStyle="#294237";
+ ctx.lineWidth=0.5;
+
+ for(let i=0;i<=400;i+=size){
+  ctx.beginPath();
+  ctx.moveTo(i,0);ctx.lineTo(i,400);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(0,i);ctx.lineTo(400,i);
+  ctx.stroke();
+ }
+
+ // Thức ăn
+ ctx.fillStyle="#ff4141";
+ ctx.beginPath();
+ ctx.arc(food.x*size+10,food.y*size+10,8,0,Math.PI*2);
+ ctx.fill();
+
+ // Rắn
+ snake.forEach((p,i)=>{
+  ctx.fillStyle=i===0?"#9cff57":"#35c759";
+  ctx.fillRect(p.x*size+1,p.y*size+1,18,18);
+
+  if(i===0){
+   ctx.fillStyle="black";
+   ctx.fillRect(p.x*size+5,p.y*size+5,3,3);
+   ctx.fillRect(p.x*size+12,p.y*size+5,3,3);
+  }
+ });
+}
+
+function endGame(){
+ running=false;
+ clearInterval(timer);
+ document.getElementById("message").textContent=
+ "💀 GAME OVER! Điểm của bạn: "+score;
+}
+
+document.addEventListener("keydown",e=>{
+ if(e.key==="ArrowUp"||e.key==="w")change(0,-1);
+ if(e.key==="ArrowDown"||e.key==="s")change(0,1);
+ if(e.key==="ArrowLeft"||e.key==="a")change(-1,0);
+ if(e.key==="ArrowRight"||e.key==="d")change(1,0);
+});
+
+updateScore();
+</script>
+</body>
+</html>
